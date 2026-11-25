@@ -86,6 +86,12 @@ title(resultAxes, 'Hasil');
 resultAxes.XTick = [];
 resultAxes.YTick = [];
 resultAxes.Box = 'on';
+edgeSegmentAxes = uiaxes(fig, 'Position', [1035 70 340 760], ...
+    'Visible', 'off');
+title(edgeSegmentAxes, 'Hasil segmentasi deteksi tepi');
+edgeSegmentAxes.XTick = [];
+edgeSegmentAxes.YTick = [];
+edgeSegmentAxes.Box = 'on';
 
     function chooseImage(~, ~)
         [file, folder] = uigetfile( ...
@@ -98,8 +104,12 @@ resultAxes.Box = 'on';
         inputLabel.Text = file;
         imshow(readImageRGB(inputPath), 'Parent', inputAxes);
         title(inputAxes, 'Gambar input');
+        inputAxes.Position = [345 70 500 760];
+        resultAxes.Position = [875 70 500 760];
         cla(resultAxes);
         title(resultAxes, 'Hasil');
+        cla(edgeSegmentAxes);
+        edgeSegmentAxes.Visible = 'off';
         resultImage = [];
         saveButton.Enable = 'off';
         statusLabel.Text = 'Gambar berhasil dimuat.';
@@ -125,17 +135,30 @@ resultAxes.Box = 'on';
         drawnow;
 
         try
+            segmentedResult = [];
             switch method
                 case 'Deep learning'
                     result = runDeepLearning();
                 case 'Deteksi tepi'
-                    result = runEdgeDetection(image);
+                    [result, segmentedResult] = runEdgeDetection(image);
                 case 'Split and merge'
                     result = runSplitAndMerge(image);
                 otherwise
                     error('Metode pemrosesan tidak dikenali.');
             end
             resultImage = result;
+            if strcmp(method, 'Deteksi tepi')
+                inputAxes.Position = [345 70 330 760];
+                resultAxes.Position = [690 70 330 760];
+                edgeSegmentAxes.Position = [1035 70 340 760];
+                edgeSegmentAxes.Visible = 'on';
+                imshow(segmentedResult, 'Parent', edgeSegmentAxes);
+            else
+                inputAxes.Position = [345 70 500 760];
+                resultAxes.Position = [875 70 500 760];
+                edgeSegmentAxes.Visible = 'off';
+                cla(edgeSegmentAxes);
+            end
             imshow(resultImage, 'Parent', resultAxes);
             title(resultAxes, method);
             statusLabel.Text = 'Pemrosesan selesai.';
@@ -179,8 +202,8 @@ resultAxes.Box = 'on';
         result = imread(overlayPath);
     end
 
-    function result = runEdgeDetection(image)
-        [edgeMap, ~, ~] = edge_segmentation(image, ...
+    function [result, segmentedResult] = runEdgeDetection(image)
+        [edgeMap, ~, segmentedResult] = edge_segmentation(image, ...
             edgeOperatorField.Value, edgeThresholdField.Value, ...
             round(morphRadiusField.Value));
         result = im2double(image);
